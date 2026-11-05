@@ -15,7 +15,7 @@
   <link rel="manifest" id="pwa-manifest">
 
   <!-- Strict Privacy & Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' blob:; img-src 'self' data:; font-src 'self' data:; connect-src 'self';">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -584,20 +584,33 @@
       }
     })();
 
-    // 2. Service Worker Registration
+    // 2. Activated Service Worker Registration (Blob-based activation)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swCode = `
-          self.addEventListener('install', (e) => self.skipWaiting());
-          self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+          const CACHE_NAME = 'callshield-v1';
+          self.addEventListener('install', (e) => {
+            self.skipWaiting();
+          });
+          self.addEventListener('activate', (e) => {
+            e.waitUntil(clients.claim());
+          });
           self.addEventListener('fetch', (e) => {
             e.respondWith(
-              caches.match(e.request).then((res) => res || fetch(e.request).catch(() => caches.match('./')))
+              fetch(e.request).catch(() => caches.match(e.request))
             );
           });
         `;
         const swBlob = new Blob([swCode], { type: 'text/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+        const swUrl = URL.createObjectURL(swBlob);
+        
+        navigator.serviceWorker.register(swUrl)
+          .then((reg) => {
+            console.log('Service Worker active with scope:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('Service worker registration error:', err);
+          });
       });
     }
 

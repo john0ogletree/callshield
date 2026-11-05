@@ -4,8 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   
+  <!-- Primary PWA & Mobile Meta Tags -->
+  <meta name="theme-color" content="#131c2e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CallShield">
+
+  <!-- Dynamic Inline Web Manifest -->
+  <link rel="manifest" id="manifest-placeholder">
+
   <!-- Strict Privacy & Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self' data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' data:; img-src 'self' data:; font-src 'self' data:;">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -22,7 +32,7 @@
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
 
-      /* Fluid Scale Variables for Smartwatch -> 4K TV */
+      /* Fluid Scale Variables */
       --font-xs: clamp(0.65rem, 0.6vw + 0.4rem, 0.95rem);
       --font-sm: clamp(0.75rem, 0.8vw + 0.5rem, 1.15rem);
       --font-base: clamp(0.9rem, 1vw + 0.6rem, 1.4rem);
@@ -200,6 +210,7 @@
     .btn-danger { background: var(--accent-red); }
     .btn-secondary { background: transparent; border: 1px solid var(--panel-border); color: var(--text-main); }
     .btn-sm { min-height: calc(var(--touch-target) * 0.8); padding: 0.4rem 0.8rem; font-size: var(--font-sm); }
+    .btn-install { background: var(--accent-green); display: none; }
 
     .result-card {
       display: none;
@@ -408,6 +419,7 @@
       CallShield
     </div>
     <div class="header-controls">
+      <button class="btn btn-sm btn-install" id="install-btn">Install App</button>
       <label class="privacy-toggle" title="Keeps your checks strictly temporary and erases them when you close your browser.">
         <input type="checkbox" id="ram-only-toggle" />
         <span>Temporary Only</span>
@@ -500,6 +512,80 @@
   <script>
     'use strict';
 
+    // 1. Dynamic Web App Manifest Injection
+    (function injectManifest() {
+      const iconSVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%233b82f6"><rect width="512" height="512" rx="100" fill="%23131c2e"/><path d="M256 64L96 128v96c0 106.56 73.73 206.2 160 230.4 86.27-24.2 160-123.84 160-230.4v-96l-160-64zm0 211.01h112c-8.48 65.92-52.48 124.64-112 143.04V275.01H144v-96.16l112-49.76v145.92z"/></svg>`;
+      
+      const manifestObj = {
+        name: "CallShield — Safe Number Checker",
+        short_name: "CallShield",
+        description: "Zero-Telemetry Client-Side Phone Safety Analysis",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#090d16",
+        theme_color: "#131c2e",
+        icons: [
+          {
+            src: iconSVG,
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+      document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(manifestBlob));
+    })();
+
+    // 2. Offline Service Worker Registration (Single-File Data URL)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          const CACHE_NAME = 'callshield-pwa-v1';
+          self.addEventListener('install', (e) => self.skipWaiting());
+          self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(
+              caches.match(e.request).then((res) => res || fetch(e.request).catch(() => caches.match('./')))
+            );
+          });
+        `;
+        const swBlob = new Blob([swCode], { type: 'text/javascript' });
+        const swUrl = URL.createObjectURL(swBlob);
+        
+        navigator.serviceWorker.register(swUrl).catch(() => {
+          // Dynamic SW fallback silently handled
+        });
+      });
+    }
+
+    // 3. PWA Installation Event Handler
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installBtn.style.display = 'none';
+      showToast('CallShield installed successfully!');
+    });
+
+    // 4. Adaptive Hero Note Engine
     function setAdaptiveHeroNote() {
       const noteEl = document.getElementById('hero-note');
       if (!noteEl) return;
@@ -539,6 +625,7 @@
       noteEl.textContent = "Have a feeling? Check it below";
     }
 
+    // 5. Security Utilities
     function escapeHTML(str) {
       if (typeof str !== 'string') return '';
       return str
@@ -555,6 +642,7 @@
       return val.replace(/\D/g, '').slice(0, 10);
     }
 
+    // 6. State & Storage Setup
     const STORAGE_KEY = 'callshield_privacy_db_v1';
     let isRamOnly = false;
     let localDB = {};
@@ -610,6 +698,7 @@
       };
     }
 
+    // 7. DOM Elements & UI Listeners
     const searchForm = document.getElementById('search-form');
     const phoneInput = document.getElementById('phone-input');
     const resultCard = document.getElementById('result-card');

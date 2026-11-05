@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  
+  <!-- Strict Privacy & Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self' data:;">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
+  <title>CallShield — Safe Number Checker</title>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --panel-bg: #131c2e;
+      --panel-border: #233148;
+      --accent-blue: #3b82f6;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-green: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+
+      /* Fluid Scale Variables for Smartwatch -> 4K TV */
+      --font-xs: clamp(0.65rem, 0.6vw + 0.4rem, 0.95rem);
+      --font-sm: clamp(0.75rem, 0.8vw + 0.5rem, 1.15rem);
+      --font-base: clamp(0.9rem, 1vw + 0.6rem, 1.4rem);
+      --font-lg: clamp(1.1rem, 1.5vw + 0.7rem, 2.2rem);
+      --font-xl: clamp(1.35rem, 2.2vw + 0.8rem, 3.4rem);
+      --spacing-unit: clamp(0.5rem, 1.2vw + 0.2rem, 2rem);
+      --radius: clamp(6px, 1vw, 16px);
+      --touch-target: clamp(40px, 3.5vw + 20px, 70px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      font-size: var(--font-base);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    *:focus-visible {
+      outline: clamp(2px, 0.3vw, 6px) solid var(--accent-blue);
+      outline-offset: clamp(2px, 0.2vw, 4px);
+    }
+
+    header {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--panel-border);
+      padding: calc(var(--spacing-unit) * 0.75) var(--spacing-unit);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: var(--font-lg);
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: clamp(18px, 1.8vw + 10px, 36px);
+      height: clamp(18px, 1.8vw + 10px, 36px);
+      fill: var(--accent-blue);
+      flex-shrink: 0;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-unit);
+      flex-wrap: wrap;
+    }
+
+    .privacy-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: var(--font-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      min-height: var(--touch-target);
+    }
+
+    .privacy-toggle input {
+      width: clamp(16px, 1vw + 10px, 24px);
+      height: clamp(16px, 1vw + 10px, 24px);
+      cursor: pointer;
+    }
+
+    main {
+      max-width: min(92vw, 1600px);
+      width: 100%;
+      margin: 0 auto;
+      padding: var(--spacing-unit) calc(var(--spacing-unit) * 0.5);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-unit);
+    }
+
+    .search-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: calc(var(--spacing-unit) * 1.5) var(--spacing-unit);
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .hero-note {
+      font-size: var(--font-sm);
+      font-weight: 600;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    .search-card h1 {
+      font-size: var(--font-xl);
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+
+    .search-card p {
+      color: var(--text-muted);
+      font-size: var(--font-base);
+      margin-bottom: calc(var(--spacing-unit) * 1.25);
+    }
+
+    .search-box {
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
+      margin: 0 auto;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 480px) {
+      .search-box {
+        flex-direction: row;
+      }
+    }
+
+    .search-box input {
+      flex: 1;
+      background: var(--bg-dark);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: var(--font-base);
+      color: var(--text-main);
+      outline: none;
+      min-height: var(--touch-target);
+      width: 100%;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .btn {
+      background: var(--accent-blue);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      font-size: var(--font-base);
+      cursor: pointer;
+      min-height: var(--touch-target);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.9; }
+    .btn-danger { background: var(--accent-red); }
+    .btn-secondary { background: transparent; border: 1px solid var(--panel-border); color: var(--text-main); }
+    .btn-sm { min-height: calc(var(--touch-target) * 0.8); padding: 0.4rem 0.8rem; font-size: var(--font-sm); }
+
+    .result-card {
+      display: none;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: var(--spacing-unit);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .result-card.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: var(--spacing-unit);
+      margin-bottom: var(--spacing-unit);
+    }
+
+    @media (min-width: 520px) {
+      .result-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+    }
+
+    .phone-display {
+      font-size: var(--font-xl);
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      word-break: break-word;
+    }
+
+    .risk-badge {
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: var(--font-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      align-self: flex-start;
+    }
+
+    .risk-high { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+    .risk-med { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+    .risk-low { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(140px, 15vw, 300px), 1fr));
+      gap: var(--spacing-unit);
+      margin-bottom: var(--spacing-unit);
+    }
+
+    .detail-item {
+      background: var(--bg-dark);
+      padding: var(--spacing-unit);
+      border-radius: var(--radius);
+      border: 1px solid var(--panel-border);
+    }
+
+    .detail-item label {
+      display: block;
+      color: var(--text-muted);
+      font-size: var(--font-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-item span { font-weight: 600; font-size: var(--font-base); }
+
+    .reports-section { margin-top: var(--spacing-unit); }
+
+    .reports-section h3 {
+      font-size: var(--font-lg);
+      margin-bottom: calc(var(--spacing-unit) * 0.75);
+    }
+
+    .report-item {
+      background: var(--bg-dark);
+      padding: var(--spacing-unit);
+      border-radius: var(--radius);
+      border-left: 3px solid var(--panel-border);
+      margin-bottom: 0.75rem;
+      font-size: var(--font-base);
+    }
+
+    .report-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: var(--font-xs);
+      margin-bottom: 0.35rem;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      align-items: center; justify-content: center;
+      padding: var(--spacing-unit); z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .modal.active { display: flex; }
+
+    .modal-content {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      width: 100%; max-width: 600px;
+      padding: calc(var(--spacing-unit) * 1.5);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h2 { font-size: var(--font-lg); margin-bottom: var(--spacing-unit); }
+    .form-group { margin-bottom: var(--spacing-unit); }
+    .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: var(--font-sm); }
+
+    .form-group select, .form-group textarea {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      color: var(--text-main);
+      outline: none;
+      font-size: var(--font-base);
+    }
+
+    .form-actions { 
+      display: flex; 
+      flex-direction: column-reverse; 
+      gap: 0.75rem; 
+      margin-top: var(--spacing-unit); 
+    }
+
+    @media (min-width: 400px) {
+      .form-actions {
+        flex-direction: row;
+        justify-content: flex-end;
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: var(--spacing-unit); 
+      right: var(--spacing-unit);
+      left: var(--spacing-unit);
+      max-width: 400px;
+      margin-left: auto;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: var(--font-sm);
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4);
+      display: flex; align-items: center; gap: 0.75rem;
+      transform: translateY(150%); opacity: 0;
+      transition: all 0.3s ease; z-index: 2000;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 320px) {
+      header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+      }
+      .brand { justify-content: center; }
+      .header-controls { justify-content: center; }
+      .search-card { padding: 1rem 0.5rem; }
+      .details-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (min-width: 2000px) {
+      main {
+        max-width: 1800px;
+      }
+      .details-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 24 24">
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+      </svg>
+      CallShield
+    </div>
+    <div class="header-controls">
+      <label class="privacy-toggle" title="Keeps your checks strictly temporary and erases them when you close your browser.">
+        <input type="checkbox" id="ram-only-toggle" />
+        <span>Temporary Only</span>
+      </label>
+      <button class="btn btn-secondary btn-sm" id="purge-btn">Clear Saved Data</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="search-card">
+      <div class="hero-note" id="hero-note">Have a feeling? Check it below</div>
+      <h1>Private Phone Number Check</h1>
+      <p>Instant safety review. Everything stays on your device with complete privacy.</p>
+      <form class="search-box" id="search-form">
+        <input type="text" id="phone-input" placeholder="Enter 10-digit number" maxlength="15" autocomplete="off" required />
+        <button type="submit" class="btn">Check Number</button>
+      </form>
+    </section>
+
+    <section class="result-card" id="result-card">
+      <div class="result-header">
+        <div>
+          <div class="phone-display" id="res-phone">+1 (000) 000-0000</div>
+          <div style="color: var(--text-muted); font-size: var(--font-sm);" id="res-location">Domestic Line</div>
+        </div>
+        <div class="risk-badge risk-low" id="res-badge">LOW RISK</div>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-item">
+          <label>Category</label>
+          <span id="res-category">Clean / Unreported</span>
+        </div>
+        <div class="detail-item">
+          <label>Line Type</label>
+          <span id="res-linetype">Standard Line</span>
+        </div>
+        <div class="detail-item">
+          <label>Risk Score</label>
+          <span id="res-score">10 / 100</span>
+        </div>
+        <div class="detail-item">
+          <label>Saved Notes</label>
+          <span id="res-reports">0</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 1rem;">
+        <button class="btn btn-danger" id="report-modal-btn">Add Note / Report</button>
+      </div>
+
+      <div class="reports-section">
+        <h3>Saved Notes</h3>
+        <div id="reports-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="report-modal">
+    <div class="modal-content">
+      <h2>Add a Note</h2>
+      <form id="report-form">
+        <div class="form-group">
+          <label>What kind of call was it?</label>
+          <select id="report-category" required>
+            <option value="Robocall">Robocall / Automated Voice</option>
+            <option value="IRS / Government Scam">IRS / Government Scam</option>
+            <option value="Telemarketer">Telemarketer / Sales</option>
+            <option value="Debt Collector">Aggressive Debt Collector</option>
+            <option value="Phishing / Financial">Phishing / Bank Fraud</option>
+            <option value="Safe / Verified Business">Safe / Verified Business</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="report-notes" rows="4" maxlength="500" placeholder="Type your notes here..." required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="cancel-report-btn">Cancel</button>
+          <button type="submit" class="btn btn-danger">Save Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <span id="toast-msg">Done.</span>
+  </div>
+
+  <script>
+    'use strict';
+
+    function setAdaptiveHeroNote() {
+      const noteEl = document.getElementById('hero-note');
+      if (!noteEl) return;
+
+      const ua = navigator.userAgent || '';
+      
+      if (navigator.brave && typeof navigator.brave.isBrave === 'function') {
+        noteEl.textContent = "Zero trackers. Zero logs. Check suspicious calls below.";
+        return;
+      }
+
+      if (ua.includes('DuckDuckGo') || ua.includes('Tor')) {
+        noteEl.textContent = "Private phone lookup below. Nothing is shared.";
+        return;
+      }
+
+      if (ua.includes('Firefox')) {
+        noteEl.textContent = "Private phone safety check below";
+        return;
+      }
+
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        noteEl.textContent = "Got a random call on your iPhone? Check it below";
+        return;
+      }
+
+      if (/Android/i.test(ua)) {
+        noteEl.textContent = "Suspicious call or text? Run a quick check below";
+        return;
+      }
+
+      if (ua.includes('Macintosh')) {
+        noteEl.textContent = "Don't guess who called. Check it below";
+        return;
+      }
+
+      noteEl.textContent = "Have a feeling? Check it below";
+    }
+
+    function escapeHTML(str) {
+      if (typeof str !== 'string') return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;');
+    }
+
+    function sanitizePhoneInput(val) {
+      if (typeof val !== 'string') return '';
+      return val.replace(/\D/g, '').slice(0, 10);
+    }
+
+    const STORAGE_KEY = 'callshield_privacy_db_v1';
+    let isRamOnly = false;
+    let localDB = {};
+
+    function loadDatabase() {
+      if (isRamOnly) return;
+      try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        localDB = data ? JSON.parse(data) : {};
+      } catch (e) {
+        localDB = {};
+      }
+    }
+
+    function saveDatabase() {
+      if (isRamOnly) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localDB));
+      } catch (e) {
+        showToast('Unable to save changes.');
+      }
+    }
+
+    function evaluateNumber(raw) {
+      if (localDB[raw]) return localDB[raw];
+
+      const formatted = `+1 (${raw.slice(0,3)}) ${raw.slice(3,6)}-${raw.slice(6)}`;
+      const prefix = raw.slice(0, 3);
+
+      let riskLevel = "low";
+      let riskLabel = "Low Risk";
+      let category = "Clean / Unreported";
+      let lineType = "Standard Line";
+      let score = 10;
+
+      if (["800", "888", "877", "866", "855", "844", "833"].includes(prefix)) {
+        lineType = "Toll-Free Line";
+        score = 45;
+        riskLevel = "med";
+        riskLabel = "Medium Risk";
+        category = "Potential Telemarketer";
+      }
+
+      return {
+        phone: formatted,
+        location: "Domestic Line",
+        riskLevel,
+        riskLabel,
+        category,
+        lineType,
+        score,
+        reports: []
+      };
+    }
+
+    const searchForm = document.getElementById('search-form');
+    const phoneInput = document.getElementById('phone-input');
+    const resultCard = document.getElementById('result-card');
+    const reportModal = document.getElementById('report-modal');
+    const reportModalBtn = document.getElementById('report-modal-btn');
+    const cancelReportBtn = document.getElementById('cancel-report-btn');
+    const reportForm = document.getElementById('report-form');
+    const purgeBtn = document.getElementById('purge-btn');
+    const ramOnlyToggle = document.getElementById('ram-only-toggle');
+
+    let activePhoneRaw = "";
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const raw = sanitizePhoneInput(phoneInput.value);
+      if (raw.length !== 10) {
+        showToast('Please enter a valid 10-digit number.');
+        return;
+      }
+
+      activePhoneRaw = raw;
+      if (!localDB[raw]) {
+        localDB[raw] = evaluateNumber(raw);
+      }
+      renderResult(raw);
+    });
+
+    function renderResult(raw) {
+      const data = localDB[raw];
+
+      document.getElementById('res-phone').textContent = data.phone;
+      document.getElementById('res-location').textContent = data.location;
+      document.getElementById('res-category').textContent = data.category;
+      document.getElementById('res-linetype').textContent = data.lineType;
+      document.getElementById('res-score').textContent = `${data.score} / 100`;
+      document.getElementById('res-reports').textContent = data.reports.length;
+
+      const badge = document.getElementById('res-badge');
+      badge.textContent = data.riskLabel;
+      badge.className = `risk-badge risk-${data.riskLevel}`;
+
+      const reportsList = document.getElementById('reports-list');
+      reportsList.textContent = '';
+
+      if (data.reports.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.style.color = 'var(--text-muted)';
+        emptyState.style.fontSize = 'var(--font-sm)';
+        emptyState.textContent = 'No notes saved for this number yet.';
+        reportsList.appendChild(emptyState);
+      } else {
+        data.reports.forEach(r => {
+          const item = document.createElement('div');
+          item.className = 'report-item';
+
+          const meta = document.createElement('div');
+          meta.className = 'report-meta';
+
+          const spanType = document.createElement('span');
+          spanType.textContent = 'Saved Note';
+
+          const spanDate = document.createElement('span');
+          spanDate.textContent = r.date;
+
+          meta.appendChild(spanType);
+          meta.appendChild(spanDate);
+
+          const body = document.createElement('div');
+          body.textContent = r.text;
+
+          item.appendChild(meta);
+          item.appendChild(body);
+          reportsList.appendChild(item);
+        });
+      }
+
+      resultCard.classList.add('active');
+    }
+
+    reportModalBtn.addEventListener('click', () => reportModal.classList.add('active'));
+    cancelReportBtn.addEventListener('click', () => reportModal.classList.remove('active'));
+
+    reportForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const category = document.getElementById('report-category').value;
+      const rawNotes = document.getElementById('report-notes').value;
+
+      const notes = escapeHTML(rawNotes.trim().slice(0, 500));
+
+      if (!localDB[activePhoneRaw]) {
+        localDB[activePhoneRaw] = evaluateNumber(activePhoneRaw);
+      }
+
+      localDB[activePhoneRaw].reports.unshift({
+        date: "Recently",
+        text: notes
+      });
+
+      if (category === "Safe / Verified Business") {
+        localDB[activePhoneRaw].riskLevel = "low";
+        localDB[activePhoneRaw].riskLabel = "Low Risk";
+        localDB[activePhoneRaw].score = 10;
+        localDB[activePhoneRaw].category = category;
+      } else {
+        localDB[activePhoneRaw].riskLevel = "high";
+        localDB[activePhoneRaw].riskLabel = "High Risk";
+        localDB[activePhoneRaw].score = 90;
+        localDB[activePhoneRaw].category = category;
+      }
+
+      saveDatabase();
+      reportModal.classList.remove('active');
+      document.getElementById('report-notes').value = '';
+      renderResult(activePhoneRaw);
+      showToast('Note saved successfully.');
+    });
+
+    ramOnlyToggle.addEventListener('change', (e) => {
+      isRamOnly = e.target.checked;
+      if (isRamOnly) {
+        localStorage.removeItem(STORAGE_KEY);
+        showToast('Temporary Mode active: notes will clear when you close this window.');
+      } else {
+        saveDatabase();
+        showToast('Standard saving active.');
+      }
+    });
+
+    purgeBtn.addEventListener('click', () => {
+      localDB = {};
+      localStorage.clear();
+      sessionStorage.clear();
+      resultCard.classList.remove('active');
+      phoneInput.value = '';
+      showToast('All saved data has been cleared.');
+    });
+
+    setAdaptiveHeroNote();
+    loadDatabase();
+  </script>
+</body>
+</html>

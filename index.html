@@ -11,11 +11,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="CallShield">
 
-  <!-- Dynamic Inline Web Manifest -->
-  <link rel="manifest" id="manifest-placeholder">
+  <!-- Manifest placeholder tag -->
+  <link rel="manifest" id="pwa-manifest">
 
   <!-- Strict Privacy & Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' data:; img-src 'self' data:; font-src 'self' data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:;">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -512,11 +512,9 @@
   <script>
     'use strict';
 
-    // 1. Dynamic Web App Manifest Injection
-    (function injectManifest() {
-      const iconSVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%233b82f6"><rect width="512" height="512" rx="100" fill="%23131c2e"/><path d="M256 64L96 128v96c0 106.56 73.73 206.2 160 230.4 86.27-24.2 160-123.84 160-230.4v-96l-160-64zm0 211.01h112c-8.48 65.92-52.48 124.64-112 143.04V275.01H144v-96.16l112-49.76v145.92z"/></svg>`;
-      
-      const manifestObj = {
+    // 1. Inlined Manifest Object -> Data URI Generator
+    (function initInlineManifest() {
+      const manifestData = {
         name: "CallShield — Safe Number Checker",
         short_name: "CallShield",
         description: "Zero-Telemetry Client-Side Phone Safety Analysis",
@@ -526,7 +524,7 @@
         theme_color: "#131c2e",
         icons: [
           {
-            src: iconSVG,
+            src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%233b82f6'><rect width='512' height='512' rx='100' fill='%23131c2e'/><path d='M256 64L96 128v96c0 106.56 73.73 206.2 160 230.4 86.27-24.2 160-123.84 160-230.4v-96l-160-64zm0 211.01h112c-8.48 65.92-52.48 124.64-112 143.04V275.01H144v-96.16l112-49.76v145.92z'/></svg>",
             sizes: "512x512",
             type: "image/svg+xml",
             purpose: "any maskable"
@@ -534,15 +532,19 @@
         ]
       };
 
-      const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
-      document.getElementById('manifest-placeholder').setAttribute('href', URL.createObjectURL(manifestBlob));
+      const manifestJson = JSON.stringify(manifestData);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(manifestJson);
+      
+      const linkTag = document.getElementById('pwa-manifest');
+      if (linkTag) {
+        linkTag.setAttribute('href', dataUri);
+      }
     })();
 
-    // 2. Offline Service Worker Registration (Single-File Data URL)
+    // 2. Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         const swCode = `
-          const CACHE_NAME = 'callshield-pwa-v1';
           self.addEventListener('install', (e) => self.skipWaiting());
           self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
           self.addEventListener('fetch', (e) => {
@@ -552,15 +554,11 @@
           });
         `;
         const swBlob = new Blob([swCode], { type: 'text/javascript' });
-        const swUrl = URL.createObjectURL(swBlob);
-        
-        navigator.serviceWorker.register(swUrl).catch(() => {
-          // Dynamic SW fallback silently handled
-        });
+        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
       });
     }
 
-    // 3. PWA Installation Event Handler
+    // 3. PWA Installation Prompt Handler
     let deferredPrompt;
     const installBtn = document.getElementById('install-btn');
 
